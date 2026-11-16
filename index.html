@@ -729,17 +729,17 @@
         { key: 'y', name: 'C5', freq: 523.25 }
       ];
 
-      // D minor blues lick for the U / bell Easter egg (mapped directly to NOTES)
+      // Game of Thrones main title intro transposed to D minor (U / bell Easter egg)
       const LICK = [
-        { index: 0, delay: 0.00, dur: 0.14 },
-        { index: 1, delay: 0.15, dur: 0.14 },
-        { index: 4, delay: 0.30, dur: 0.14 },
-        { index: 5, delay: 0.45, dur: 0.24 },
-        { index: 4, delay: 0.72, dur: 0.14 },
-        { index: 3, delay: 0.87, dur: 0.14 },
-        { index: 2, delay: 1.02, dur: 0.14 },
-        { index: 1, delay: 1.17, dur: 0.14 },
-        { index: 0, delay: 1.33, dur: 0.42 }
+        { index: 4, delay: 0.00, dur: 0.92 }, // A4
+        { index: 0, delay: 0.99, dur: 0.60 }, // D4
+        { index: 1, delay: 1.65, dur: 0.15 }, // F4
+        { index: 2, delay: 1.815, dur: 0.15 }, // G4
+        { index: 4, delay: 1.98, dur: 0.92 }, // A4
+        { index: 0, delay: 2.97, dur: 0.60 }, // D4
+        { index: 1, delay: 3.63, dur: 0.15 }, // F4
+        { index: 2, delay: 3.795, dur: 0.15 }, // G4
+        { index: 1, freq: 329.63, delay: 3.96, dur: 1.15 } // E4 (highlights closest key W / F4)
       ];
 
       const saxSvg = document.getElementById('saxSvg');
@@ -1099,7 +1099,7 @@
           LICK.forEach((step) => {
             const note = NOTES[step.index];
             if (!note) return;
-            const freq = note.freq * (octaveUp ? 2 : 1);
+            const freq = (step.freq ?? note.freq) * (octaveUp ? 2 : 1);
             const voice = createSaxVoice(freq, 0.19, step.delay, step.dur);
             activeLickVoices.add(voice);
             maxEndSec = Math.max(maxEndSec, step.delay + step.dur + 0.16);
