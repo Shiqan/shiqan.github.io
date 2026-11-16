@@ -207,6 +207,7 @@
 
     .sax-svg:not(.is-egg-discovered):not(.is-gold) .sax-bell-cue {
       animation: bell-invite 4.2s cubic-bezier(0.16, 1, 0.3, 1) 1.05s infinite;
+      will-change: transform, opacity;
     }
 
     .sax-svg:has(.sax-bell-target:hover, .sax-bell-target:focus-visible) .sax-bell-rim {
@@ -302,6 +303,10 @@
 
     .sax-svg.is-gold .bell-wave {
       stroke: var(--gold);
+    }
+
+    .sax-svg.is-playing .bell-wave {
+      will-change: transform, opacity;
     }
 
     .sax-svg.is-playing .bell-wave-1 {
@@ -620,11 +625,13 @@
       .sax-bell-cue {
         animation: none !important;
         opacity: 0 !important;
+        will-change: auto;
       }
 
       .sax-svg.is-playing .bell-wave {
         animation: none !important;
         transform: none !important;
+        will-change: auto;
       }
 
       .sax-svg.is-playing .bell-wave-1 {
@@ -748,6 +755,8 @@
       const playHint = document.getElementById('playHint');
       const keyButtons = Array.from(document.querySelectorAll('.keycap[data-index]'));
       const svgKeys = Array.from(document.querySelectorAll('.sax-key[data-index]'));
+      const svgHitEls = svgKeys.map((keyEl) => keyEl.querySelector('.sax-key-hit') || keyEl);
+      const KEY_TO_INDEX = new Map(NOTES.map((n, i) => [n.key, i]));
 
       let audioCtx = null;
       let masterInput = null;
@@ -755,21 +764,27 @@
       const activeVoices = new Map();
       const activePointers = new Map();
       const activeLickVoices = new Set();
-      const activeLickCounts = new Array(NOTES.length).fill(0);
+      const activeManualCounts = new Uint8Array(NOTES.length);
+      const activeLickCounts = new Uint8Array(NOTES.length);
+      const visualKeyStates = new Uint8Array(NOTES.length);
+      let isPlayingVisual = false;
       let lickTimers = [];
       let lickGeneration = 0;
       let isLickPlaying = false;
       let octaveActive = false;
+      let cachedKeycaps = [];
+      let cachedSvgHits = [];
+      let hitTargetsDirty = true;
 
       function createRoomImpulse(ctx, durationSec = 0.45) {
         const length = Math.floor(ctx.sampleRate * durationSec);
         const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
-        for (let ch = 0; ch < 2; ch++) {
-          const data = impulse.getChannelData(ch);
-          for (let i = 0; i < length; i++) {
-            const decay = Math.pow(1 - i / length, 2.6);
-            data[i] = (Math.random() * 2 - 1) * decay;
-          }
+        const ch0 = impulse.getChannelData(0);
+        const ch1 = impulse.getChannelData(1);
+        for (let i = 0; i < length; i++) {
+          const decay = Math.pow(1 - i / length, 2.6);
+          ch0[i] = (Math.random() * 2 - 1) * decay;
+          ch1[i] = (Math.random() * 2 - 1) * decay;
         }
         return impulse;
       }
@@ -916,6 +931,25 @@
         breath.start(startAt);
         vibrato.start(startAt);
 
+        let disconnected = false;
+        function cleanupNodes() {
+          if (disconnected) return;
+          disconnected = true;
+          saw.onended = null;
+          saw.disconnect();
+          tri.disconnect();
+          sawGain.disconnect();
+          triGain.disconnect();
+          filter.disconnect();
+          breath.disconnect();
+          breathFilter.disconnect();
+          breathGain.disconnect();
+          vibrato.disconnect();
+          vibratoDepth.disconnect();
+          env.disconnect();
+        }
+        saw.onended = cleanupNodes;
+
         function stopSources(when) {
           saw.stop(when);
           tri.stop(when);
@@ -978,14 +1012,18 @@
       }
 
       function updatePlayingVisuals() {
-        const hasActive = activeVoices.size > 0;
-        saxSvg.classList.toggle('is-playing', hasActive || saxSvg.classList.contains('is-gold'));
+        const next = activeVoices.size > 0 || isLickPlaying;
+        if (next === isPlayingVisual) return;
+        isPlayingVisual = next;
+        saxSvg.classList.toggle('is-playing', next);
       }
 
       function syncKeyVisual(index) {
-        const manualActive = Array.from(activeVoices.values()).some((v) => v.index === index);
-        const active = manualActive || activeLickCounts[index] > 0;
-        const pressed = String(active);
+        const active = activeManualCounts[index] > 0 || activeLickCounts[index] > 0;
+        const next = active ? 1 : 0;
+        if (visualKeyStates[index] === next) return;
+        visualKeyStates[index] = next;
+        const pressed = active ? 'true' : 'false';
         if (keyButtons[index]) {
           keyButtons[index].classList.toggle('is-active', active);
           keyButtons[index].setAttribute('aria-pressed', pressed);
@@ -1006,6 +1044,7 @@
         const { ctx } = getAudioContext();
         const entry = { index, voice: null, releasedEarly: false, aborted: false };
         activeVoices.set(voiceId, entry);
+        activeManualCounts[index] += 1;
         syncKeyVisual(index);
         updatePlayingVisuals();
 
@@ -1022,6 +1061,7 @@
           }).catch(() => {
             if (activeVoices.get(voiceId) === entry) {
               activeVoices.delete(voiceId);
+              activeManualCounts[index] = Math.max(0, activeManualCounts[index] - 1);
               syncKeyVisual(index);
               updatePlayingVisuals();
             }
@@ -1040,6 +1080,7 @@
           entry.voice.stop();
         }
         activeVoices.delete(voiceId);
+        activeManualCounts[index] = Math.max(0, activeManualCounts[index] - 1);
 
         syncKeyVisual(index);
         updatePlayingVisuals();
@@ -1059,18 +1100,24 @@
         eggKey.setAttribute('aria-pressed', 'false');
         bellTrigger.setAttribute('aria-pressed', 'false');
         saxSvg.classList.remove('is-gold');
-        NOTES.forEach((_, i) => syncKeyVisual(i));
+        for (let i = 0; i < NOTES.length; i++) {
+          syncKeyVisual(i);
+        }
         updatePlayingVisuals();
       }
 
       function stopAllNotes() {
-        activePointers.clear();
+        if (activePointers.size > 0) {
+          activePointers.clear();
+          window.removeEventListener('pointermove', onPointerMove);
+        }
         for (const [voiceId, entry] of activeVoices.entries()) {
           entry.aborted = true;
           if (entry.voice) {
             entry.voice.stop();
           }
           activeVoices.delete(voiceId);
+          activeManualCounts[entry.index] = Math.max(0, activeManualCounts[entry.index] - 1);
           syncKeyVisual(entry.index);
         }
         stopLick();
@@ -1087,7 +1134,8 @@
         eggKey.removeAttribute('tabindex');
         eggKey.setAttribute('aria-pressed', 'true');
         bellTrigger.setAttribute('aria-pressed', 'true');
-        saxSvg.classList.add('is-gold', 'is-playing', 'is-egg-discovered');
+        saxSvg.classList.add('is-gold', 'is-egg-discovered');
+        updatePlayingVisuals();
 
         const gen = lickGeneration;
         const { ctx } = getAudioContext();
@@ -1149,10 +1197,45 @@
         triggerEggLick(octaveUp);
       }
 
+      function snapshotHitTargets() {
+        cachedKeycaps = keyButtons.map((btn) => {
+          const r = btn.getBoundingClientRect();
+          return {
+            index: Number(btn.dataset.index),
+            left: r.left - 5,
+            right: r.right + 5,
+            top: r.top - 8,
+            bottom: r.bottom + 8
+          };
+        });
+        cachedSvgHits = svgHitEls.map((el, i) => {
+          const r = el.getBoundingClientRect();
+          return {
+            index: Number(svgKeys[i].dataset.index),
+            cx: (r.left + r.right) * 0.5,
+            cy: (r.top + r.bottom) * 0.5,
+            rx: (r.right - r.left) * 0.5,
+            ry: (r.bottom - r.top) * 0.5
+          };
+        });
+        hitTargetsDirty = false;
+      }
+
       function getKeyIndexFromPoint(x, y) {
-        const el = document.elementFromPoint(x, y);
-        const target = el && el.closest('.keycap[data-index], .sax-key[data-index]');
-        return target ? Number(target.dataset.index) : -1;
+        if (hitTargetsDirty) snapshotHitTargets();
+        for (let i = cachedSvgHits.length - 1; i >= 0; i--) {
+          const h = cachedSvgHits[i];
+          if (h.rx > 0 && h.ry > 0) {
+            const dx = (x - h.cx) / h.rx;
+            const dy = (y - h.cy) / h.ry;
+            if (dx * dx + dy * dy <= 1) return h.index;
+          }
+        }
+        for (let i = cachedKeycaps.length - 1; i >= 0; i--) {
+          const b = cachedKeycaps[i];
+          if (x >= b.left && x <= b.right && y >= b.top && y <= b.bottom) return b.index;
+        }
+        return -1;
       }
 
       function bindInteractiveKey(el, kbdSourceId) {
@@ -1162,6 +1245,10 @@
           e.preventDefault();
           if (el.setPointerCapture) {
             try { el.setPointerCapture(e.pointerId); } catch (_) {}
+          }
+          if (activePointers.size === 0) {
+            snapshotHitTargets();
+            window.addEventListener('pointermove', onPointerMove, { passive: true });
           }
           const sourceId = `ptr-${e.pointerId}`;
           activePointers.set(e.pointerId, { index, sourceId });
@@ -1187,7 +1274,7 @@
       svgKeys.forEach((keyEl) => bindInteractiveKey(keyEl, 'svg-kbd'));
 
       // Slide-to-play glissando and reliable pointer release across gaps
-      window.addEventListener('pointermove', (e) => {
+      function onPointerMove(e) {
         const state = activePointers.get(e.pointerId);
         if (!state) return;
         const nextIndex = getKeyIndexFromPoint(e.clientX, e.clientY);
@@ -1196,15 +1283,26 @@
           state.index = nextIndex;
           startNote(nextIndex, state.sourceId, e.shiftKey || octaveActive);
         }
-      });
+      }
 
       function releasePointer(e) {
         const state = activePointers.get(e.pointerId);
         if (!state) return;
         stopNote(state.index, state.sourceId);
         activePointers.delete(e.pointerId);
+        if (activePointers.size === 0) {
+          window.removeEventListener('pointermove', onPointerMove);
+        }
       }
 
+      function markHitTargetsDirty() {
+        if (activePointers.size > 0) {
+          hitTargetsDirty = true;
+        }
+      }
+
+      window.addEventListener('resize', markHitTargetsDirty, { passive: true });
+      window.addEventListener('scroll', markHitTargetsDirty, { passive: true });
       window.addEventListener('pointerup', releasePointer);
       window.addEventListener('pointercancel', releasePointer);
 
@@ -1237,8 +1335,8 @@
           toggleEggLick(useOctave);
           return;
         }
-        const idx = NOTES.findIndex((n) => n.key === pressed);
-        if (idx !== -1) {
+        const idx = KEY_TO_INDEX.get(pressed);
+        if (idx !== undefined) {
           startNote(idx, 'kbd', useOctave);
         }
       });
@@ -1249,11 +1347,17 @@
           return;
         }
         const released = e.key.toLowerCase();
-        const idx = NOTES.findIndex((n) => n.key === released);
-        if (idx !== -1) {
+        const idx = KEY_TO_INDEX.get(released);
+        if (idx !== undefined) {
           stopNote(idx, 'kbd');
         }
       });
+
+      function suspendAudioContext() {
+        if (audioCtx && audioCtx.state === 'running') {
+          audioCtx.suspend().catch(() => {});
+        }
+      }
 
       function handleContextLoss() {
         setOctaveKey(false);
@@ -1261,9 +1365,15 @@
       }
 
       window.addEventListener('blur', handleContextLoss);
-      window.addEventListener('pagehide', handleContextLoss);
+      window.addEventListener('pagehide', () => {
+        handleContextLoss();
+        suspendAudioContext();
+      });
       document.addEventListener('visibilitychange', () => {
-        if (document.hidden) handleContextLoss();
+        if (document.hidden) {
+          handleContextLoss();
+          suspendAudioContext();
+        }
       });
     })();
   </script>
