@@ -11,21 +11,59 @@
   <meta property="og:url" content="https://shiqan.dev/">
   <meta property="og:title" content="Shiqan.dev">
   <meta property="og:description" content="Shiqan — minimal personal page.">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111115" media="(prefers-color-scheme: dark)">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M10 6h4l3 14c.8 3.6 4.4 4.2 5.4 1.2l1.6-4.7' fill='none' stroke='%232100EC' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cellipse cx='24.5' cy='16' rx='3' ry='1.4' transform='rotate(-22 24.5 16)' fill='none' stroke='%232100EC' stroke-width='2.2'/%3E%3C/svg%3E">
   <style>
     :root {
+      color-scheme: light dark;
       --bg: #ffffff;
       --ink: #1f1f24;
       --muted: #63636e;
       --accent: #2100EC;
+      --accent-fill: #2100EC;
       --accent-soft: rgba(33, 0, 236, 0.08);
       --gold: #D49B1A;
       --gold-ink: #8f6200;
+      --gold-active: #8f6200;
       --gold-soft: rgba(212, 155, 26, 0.14);
       --key-bg: #f3f3f6;
       --key-border: #e4e4ea;
+      --link-underline: rgba(31, 31, 36, 0.35);
+      --signoff-underline: rgba(99, 99, 110, 0.45);
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111115;
+        --ink: #ececf1;
+        --muted: #9898a6;
+        --accent: #7b6dff;
+        --accent-fill: #5a48f5;
+        --accent-soft: rgba(123, 109, 255, 0.16);
+        --gold: #eab338;
+        --gold-ink: #f3c458;
+        --gold-active: #b87e00;
+        --gold-soft: rgba(234, 179, 56, 0.16);
+        --key-bg: #1b1b22;
+        --key-border: #2c2c36;
+        --link-underline: rgba(236, 236, 241, 0.35);
+        --signoff-underline: rgba(152, 152, 166, 0.45);
+      }
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+      border: 0;
     }
 
     *,
@@ -240,6 +278,7 @@
     }
 
     .keycap {
+      position: relative;
       appearance: none;
       border: 1px solid var(--key-border);
       background: var(--key-bg);
@@ -269,6 +308,12 @@
       animation: key-intro 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
+    .keycap::after {
+      content: "";
+      position: absolute;
+      inset: -8px -5px;
+    }
+
     .keycap:nth-child(1) { animation-delay: 140ms; }
     .keycap:nth-child(2) { animation-delay: 200ms; }
     .keycap:nth-child(3) { animation-delay: 260ms; }
@@ -283,6 +328,7 @@
 
     .keycap:focus-visible,
     .sax-key:focus-visible,
+    .sax-bell-target:focus-visible,
     a:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 3px;
@@ -290,8 +336,8 @@
     }
 
     .keycap.is-active {
-      background: var(--accent);
-      border-color: var(--accent);
+      background: var(--accent-fill);
+      border-color: var(--accent-fill);
       color: #ffffff;
       transform: scale(0.92) translateY(1px);
     }
@@ -319,8 +365,8 @@
     }
 
     .keycap--egg.is-revealed.is-active {
-      background: var(--gold-ink);
-      border-color: var(--gold-ink);
+      background: var(--gold-active);
+      border-color: var(--gold-active);
       color: #ffffff;
       transform: scale(0.92) translateY(1px);
     }
@@ -338,7 +384,7 @@
     .bio a {
       color: inherit;
       text-decoration: underline;
-      text-decoration-color: rgba(31, 31, 36, 0.35);
+      text-decoration-color: var(--link-underline);
       text-underline-offset: 3px;
       text-decoration-thickness: 1px;
       transition: color 140ms ease, text-decoration-color 140ms ease;
@@ -367,7 +413,7 @@
 
     .signoff a span {
       text-decoration: underline;
-      text-decoration-color: rgba(99, 99, 110, 0.45);
+      text-decoration-color: var(--signoff-underline);
       text-underline-offset: 3px;
       text-decoration-thickness: 1px;
       transition: text-decoration-color 140ms ease;
@@ -456,9 +502,23 @@
       }
     }
 
+    @media (pointer: coarse) {
+      .sax-wrap {
+        --key-size: 32px;
+        --key-gap: 12px;
+      }
+    }
+
     @media (max-width: 440px) {
       .sax-wrap {
         --key-gap: 10px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .sax-wrap {
+        --key-size: 30px;
+        --key-gap: 9px;
       }
     }
 
@@ -477,9 +537,10 @@
 
 <body>
   <main>
-    <section class="stage" aria-label="Shiqan personal page">
+    <section class="stage" aria-labelledby="pageTitle">
+      <h1 class="sr-only" id="pageTitle">Shiqan</h1>
       <div class="sax-wrap">
-        <svg class="sax-svg" id="saxSvg" viewBox="0 0 176 156" role="img" aria-label="Interactive saxophone keys">
+        <svg class="sax-svg" id="saxSvg" viewBox="0 0 176 156" role="img" aria-label="Interactive saxophone">
           <!-- Neck, mouthpiece, single-line body tube, bow, and flared bell -->
           <g class="sax-body">
             <!-- Mouthpiece -->
@@ -497,48 +558,48 @@
           </g>
 
           <!-- Generous click target over the bell for the Easter egg -->
-          <circle class="sax-bell-target" id="bellTrigger" cx="139" cy="64" r="20" />
+          <circle class="sax-bell-target" id="bellTrigger" cx="139" cy="64" r="20" role="button" tabindex="0" aria-label="Play saxophone riff" />
 
           <!-- Subtle sound arcs from bell -->
           <path class="bell-wave bell-wave-1" d="M 152 52 C 157 49, 161 52, 161 57" />
           <path class="bell-wave bell-wave-2" d="M 158 44 C 165 40, 171 45, 171 53" />
 
           <!-- 6 interactive pearl keys along the sax spine (mapped to Q-Y) -->
-          <g class="sax-key" data-index="0" role="button" tabindex="0" aria-label="Play D4 (Q)">
-            <circle class="sax-key-hit" cx="68" cy="46" r="9" />
+          <g class="sax-key" data-index="0" role="button" tabindex="0" aria-pressed="false" aria-label="Play D4 (Q)">
+            <ellipse class="sax-key-hit" cx="68" cy="46" rx="16" ry="8.5" />
             <circle class="sax-key-ring" pathLength="100" cx="68" cy="46" r="5.2" />
           </g>
-          <g class="sax-key" data-index="1" role="button" tabindex="0" aria-label="Play F4 (W)">
-            <circle class="sax-key-hit" cx="71" cy="59" r="9" />
+          <g class="sax-key" data-index="1" role="button" tabindex="0" aria-pressed="false" aria-label="Play F4 (W)">
+            <ellipse class="sax-key-hit" cx="71" cy="59" rx="16" ry="8.5" />
             <circle class="sax-key-ring" pathLength="100" cx="71" cy="59" r="5.2" />
           </g>
-          <g class="sax-key" data-index="2" role="button" tabindex="0" aria-label="Play G4 (E)">
-            <circle class="sax-key-hit" cx="74" cy="72" r="9" />
+          <g class="sax-key" data-index="2" role="button" tabindex="0" aria-pressed="false" aria-label="Play G4 (E)">
+            <ellipse class="sax-key-hit" cx="74" cy="72" rx="16" ry="8.5" />
             <circle class="sax-key-ring" pathLength="100" cx="74" cy="72" r="5.2" />
           </g>
-          <g class="sax-key" data-index="3" role="button" tabindex="0" aria-label="Play A-flat 4 (R)">
-            <circle class="sax-key-hit" cx="77" cy="85" r="9" />
+          <g class="sax-key" data-index="3" role="button" tabindex="0" aria-pressed="false" aria-label="Play A-flat 4 (R)">
+            <ellipse class="sax-key-hit" cx="77" cy="85" rx="16" ry="8.5" />
             <circle class="sax-key-ring" pathLength="100" cx="77" cy="85" r="5.2" />
           </g>
-          <g class="sax-key" data-index="4" role="button" tabindex="0" aria-label="Play A4 (T)">
-            <circle class="sax-key-hit" cx="80" cy="98" r="9" />
+          <g class="sax-key" data-index="4" role="button" tabindex="0" aria-pressed="false" aria-label="Play A4 (T)">
+            <ellipse class="sax-key-hit" cx="80" cy="98" rx="16" ry="8.5" />
             <circle class="sax-key-ring" pathLength="100" cx="80" cy="98" r="5.2" />
           </g>
-          <g class="sax-key" data-index="5" role="button" tabindex="0" aria-label="Play C5 (Y)">
-            <circle class="sax-key-hit" cx="83" cy="111" r="9" />
+          <g class="sax-key" data-index="5" role="button" tabindex="0" aria-pressed="false" aria-label="Play C5 (Y)">
+            <ellipse class="sax-key-hit" cx="83" cy="111" rx="16" ry="8.5" />
             <circle class="sax-key-ring" pathLength="100" cx="83" cy="111" r="5.2" />
           </g>
         </svg>
 
         <!-- Keycaps mapped to Q W E R T Y + hidden U Easter egg -->
         <div class="keycaps" role="group" aria-label="Saxophone keyboard controls">
-          <button class="keycap" type="button" data-index="0" data-key="q" aria-label="Note D4, key Q">Q</button>
-          <button class="keycap" type="button" data-index="1" data-key="w" aria-label="Note F4, key W">W</button>
-          <button class="keycap" type="button" data-index="2" data-key="e" aria-label="Note G4, key E">E</button>
-          <button class="keycap" type="button" data-index="3" data-key="r" aria-label="Note A-flat 4, key R">R</button>
-          <button class="keycap" type="button" data-index="4" data-key="t" aria-label="Note A4, key T">T</button>
-          <button class="keycap" type="button" data-index="5" data-key="y" aria-label="Note C5, key Y">Y</button>
-          <button class="keycap keycap--egg" type="button" id="eggKey" data-key="u" aria-label="Play riff, key U" tabindex="-1">U</button>
+          <button class="keycap" type="button" data-index="0" data-key="q" aria-pressed="false" aria-label="Note D4, key Q">Q</button>
+          <button class="keycap" type="button" data-index="1" data-key="w" aria-pressed="false" aria-label="Note F4, key W">W</button>
+          <button class="keycap" type="button" data-index="2" data-key="e" aria-pressed="false" aria-label="Note G4, key E">E</button>
+          <button class="keycap" type="button" data-index="3" data-key="r" aria-pressed="false" aria-label="Note A-flat 4, key R">R</button>
+          <button class="keycap" type="button" data-index="4" data-key="t" aria-pressed="false" aria-label="Note A4, key T">T</button>
+          <button class="keycap" type="button" data-index="5" data-key="y" aria-pressed="false" aria-label="Note C5, key Y">Y</button>
+          <button class="keycap keycap--egg" type="button" id="eggKey" data-key="u" aria-label="Play riff, key U" aria-hidden="true" tabindex="-1">U</button>
         </div>
       </div>
 
@@ -589,6 +650,19 @@
       let lickTimers = [];
       let lickGeneration = 0;
 
+      function createRoomImpulse(ctx, durationSec = 0.45) {
+        const length = Math.floor(ctx.sampleRate * durationSec);
+        const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+        for (let ch = 0; ch < 2; ch++) {
+          const data = impulse.getChannelData(ch);
+          for (let i = 0; i < length; i++) {
+            const decay = Math.pow(1 - i / length, 2.6);
+            data[i] = (Math.random() * 2 - 1) * decay;
+          }
+        }
+        return impulse;
+      }
+
       function getAudioContext() {
         if (!audioCtx) {
           const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -605,12 +679,25 @@
           const masterGain = audioCtx.createGain();
           masterGain.gain.setValueAtTime(0.9, audioCtx.currentTime);
 
+          // Subtle shared room resonance
+          const convolver = audioCtx.createConvolver();
+          convolver.buffer = createRoomImpulse(audioCtx);
+
+          const wetFilter = audioCtx.createBiquadFilter();
+          wetFilter.type = 'lowpass';
+          wetFilter.frequency.setValueAtTime(2200, audioCtx.currentTime);
+
+          const wetGain = audioCtx.createGain();
+          wetGain.gain.setValueAtTime(0.16, audioCtx.currentTime);
+
           masterGain.connect(compressor);
+          masterGain.connect(convolver);
+          convolver.connect(wetFilter);
+          wetFilter.connect(wetGain);
+          wetGain.connect(compressor);
+
           compressor.connect(audioCtx.destination);
           masterInput = masterGain;
-        }
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
         }
         return { ctx: audioCtx, output: masterInput };
       }
@@ -640,14 +727,17 @@
       function createSaxVoice(freq, peakGain = 0.22, startOffset = 0, duration = null) {
         const { ctx, output } = getAudioContext();
         const startAt = ctx.currentTime + Math.max(0, startOffset);
+        const scoopEnd = duration === null ? 0.028 : Math.min(0.028, duration * 0.25);
 
         const saw = ctx.createOscillator();
         saw.type = 'sawtooth';
-        saw.frequency.setValueAtTime(freq, startAt);
+        saw.frequency.setValueAtTime(freq * 0.988, startAt);
+        saw.frequency.exponentialRampToValueAtTime(freq, startAt + scoopEnd);
 
         const tri = ctx.createOscillator();
         tri.type = 'triangle';
-        tri.frequency.setValueAtTime(freq, startAt);
+        tri.frequency.setValueAtTime(freq * 0.988, startAt);
+        tri.frequency.exponentialRampToValueAtTime(freq, startAt + scoopEnd);
         tri.detune.setValueAtTime(-4, startAt);
 
         const sawGain = ctx.createGain();
@@ -772,11 +862,14 @@
       function syncKeyVisual(index) {
         const manualActive = Array.from(activeVoices.values()).some((v) => v.index === index);
         const active = manualActive || activeLickCounts[index] > 0;
+        const pressed = String(active);
         if (keyButtons[index]) {
           keyButtons[index].classList.toggle('is-active', active);
+          keyButtons[index].setAttribute('aria-pressed', pressed);
         }
         if (svgKeys[index]) {
           svgKeys[index].classList.toggle('is-active', active);
+          svgKeys[index].setAttribute('aria-pressed', pressed);
         }
       }
 
@@ -785,17 +878,36 @@
         const voiceId = `${sourceId}:${index}`;
         if (activeVoices.has(voiceId)) return;
 
-        const voice = createSaxVoice(NOTES[index].freq);
-        activeVoices.set(voiceId, { index, voice });
+        const { ctx } = getAudioContext();
+        const entry = { index, voice: null, cancelled: false };
+        activeVoices.set(voiceId, entry);
         syncKeyVisual(index);
         updatePlayingVisuals();
+
+        if (ctx.state === 'suspended') {
+          ctx.resume().then(() => {
+            if (entry.cancelled || activeVoices.get(voiceId) !== entry) return;
+            entry.voice = createSaxVoice(NOTES[index].freq);
+          }).catch(() => {
+            if (activeVoices.get(voiceId) === entry) {
+              activeVoices.delete(voiceId);
+              syncKeyVisual(index);
+              updatePlayingVisuals();
+            }
+          });
+        } else {
+          entry.voice = createSaxVoice(NOTES[index].freq);
+        }
       }
 
       function stopNote(index, sourceId) {
         const voiceId = `${sourceId}:${index}`;
         const entry = activeVoices.get(voiceId);
         if (!entry) return;
-        entry.voice.stop();
+        entry.cancelled = true;
+        if (entry.voice) {
+          entry.voice.stop();
+        }
         activeVoices.delete(voiceId);
 
         syncKeyVisual(index);
@@ -820,7 +932,10 @@
       function stopAllNotes() {
         activePointers.clear();
         for (const [voiceId, entry] of activeVoices.entries()) {
-          entry.voice.stop();
+          entry.cancelled = true;
+          if (entry.voice) {
+            entry.voice.stop();
+          }
           activeVoices.delete(voiceId);
           syncKeyVisual(entry.index);
         }
@@ -832,6 +947,7 @@
 
         // Reveal hidden U keycap
         eggKey.classList.add('is-revealed', 'is-active');
+        eggKey.removeAttribute('aria-hidden');
         eggKey.removeAttribute('tabindex');
         saxSvg.classList.add('is-gold', 'is-playing');
 
@@ -910,6 +1026,9 @@
             stopNote(index, kbdSourceId);
           }
         });
+        el.addEventListener('blur', () => {
+          stopNote(index, kbdSourceId);
+        });
       }
 
       keyButtons.forEach((btn) => bindInteractiveKey(btn, 'cap-kbd'));
@@ -939,6 +1058,12 @@
 
       eggKey.addEventListener('click', triggerEggLick);
       bellTrigger.addEventListener('click', triggerEggLick);
+      bellTrigger.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          if (!e.repeat) triggerEggLick();
+        }
+      });
 
       // Keyboard shortcuts (Q-Y + U Easter egg)
       window.addEventListener('keydown', (e) => {
@@ -966,6 +1091,10 @@
       });
 
       window.addEventListener('blur', stopAllNotes);
+      window.addEventListener('pagehide', stopAllNotes);
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopAllNotes();
+      });
     })();
   </script>
 </body>
