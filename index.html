@@ -22,43 +22,33 @@
   <style>
     :root {
       color-scheme: light dark;
-      --bg: #ffffff;
-      --ink: #1f1f24;
-      --muted: #63636e;
-      --accent: #2100EC;
-      --accent-fill: #2100EC;
-      --accent-soft: rgba(33, 0, 236, 0.08);
-      --gold: #D49B1A;
-      --gold-ink: #8f6200;
-      --gold-active: #8f6200;
-      --gold-soft: rgba(212, 155, 26, 0.14);
-      --bell-rest: rgba(33, 0, 236, 0.045);
-      --key-bg: #f3f3f6;
-      --key-border: #e4e4ea;
-      --link-underline: rgba(31, 31, 36, 0.35);
-      --signoff-underline: rgba(99, 99, 110, 0.45);
+      --bg: light-dark(#ffffff, #111115);
+      --ink: light-dark(#1f1f24, #ececf1);
+      --muted: light-dark(#63636e, #9898a6);
+      --accent: light-dark(#2100EC, #7b6dff);
+      --accent-fill: light-dark(#2100EC, #5a48f5);
+      --accent-soft: light-dark(
+        color-mix(in srgb, #2100EC 8%, transparent),
+        color-mix(in srgb, #7b6dff 16%, transparent)
+      );
+      --gold: light-dark(#D49B1A, #eab338);
+      --gold-ink: light-dark(#8f6200, #f3c458);
+      --gold-active: light-dark(#8f6200, #b87e00);
+      --gold-soft: light-dark(
+        color-mix(in srgb, #D49B1A 14%, transparent),
+        color-mix(in srgb, #eab338 16%, transparent)
+      );
+      --bell-rest: light-dark(
+        color-mix(in srgb, #2100EC 4.5%, transparent),
+        color-mix(in srgb, #7b6dff 9%, transparent)
+      );
+      --key-bg: light-dark(#f3f3f6, #1b1b22);
+      --key-border: light-dark(#e4e4ea, #2c2c36);
+      --link-underline: color-mix(in srgb, var(--ink) 35%, transparent);
+      --signoff-underline: color-mix(in srgb, var(--muted) 45%, transparent);
+      --spring: linear(0, 0.0451 6.2%, 0.1544 12.5%, 0.2959 18.8%, 0.4461 25.0%, 0.5894 31.2%, 0.7162 37.5%, 0.8216 43.8%, 0.9045 50.0%, 0.9659 56.2%, 1.0083 62.5%, 1.0349 68.8%, 1.0491 75.0%, 1.0541 81.2%, 1.0528 87.5%, 1.0475 93.8%, 1);
       --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #111115;
-        --ink: #ececf1;
-        --muted: #9898a6;
-        --accent: #7b6dff;
-        --accent-fill: #5a48f5;
-        --accent-soft: rgba(123, 109, 255, 0.16);
-        --gold: #eab338;
-        --gold-ink: #f3c458;
-        --gold-active: #b87e00;
-        --gold-soft: rgba(234, 179, 56, 0.16);
-        --bell-rest: rgba(123, 109, 255, 0.09);
-        --key-bg: #1b1b22;
-        --key-border: #2c2c36;
-        --link-underline: rgba(236, 236, 241, 0.35);
-        --signoff-underline: rgba(152, 152, 166, 0.45);
-      }
     }
 
     .sr-only {
@@ -133,6 +123,65 @@
       user-select: none;
       -webkit-user-select: none;
       -webkit-tap-highlight-color: transparent;
+
+      &.is-octave .sax-octave {
+        transform: rotate(-16deg);
+      }
+
+      &:not(.is-egg-discovered):not(.is-gold) .sax-bell-cue {
+        animation: bell-invite 4.2s cubic-bezier(0.16, 1, 0.3, 1) 1.05s infinite;
+        will-change: transform, opacity;
+      }
+
+      &:has(.sax-bell-target:hover, .sax-bell-target:focus-visible) .sax-bell-rim {
+        fill: var(--accent-soft);
+        stroke-width: 2.7;
+      }
+
+      &:has(.sax-bell-target:active) .sax-bell-rim {
+        fill: var(--gold-soft);
+        stroke-width: 2.7;
+      }
+
+      &.is-playing {
+        .sax-body {
+          transform: rotate(-1.4deg) scale(1.012);
+        }
+
+        .bell-wave {
+          will-change: transform, opacity;
+        }
+
+        .bell-wave-1 {
+          animation: wave-pulse 640ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
+        }
+
+        .bell-wave-2 {
+          animation: wave-pulse 640ms cubic-bezier(0.16, 1, 0.3, 1) 180ms infinite;
+        }
+      }
+
+      &.is-gold {
+        .sax-body {
+          stroke: var(--gold);
+        }
+
+        .sax-key-ring {
+          stroke: var(--gold);
+        }
+
+        .sax-key.is-active .sax-key-ring {
+          fill: var(--gold);
+        }
+
+        .bell-wave {
+          stroke: var(--gold);
+        }
+
+        &:has(.sax-bell-target:hover, .sax-bell-target:focus-visible) .sax-bell-rim {
+          fill: var(--gold-soft);
+        }
+      }
     }
 
     .sax-body {
@@ -141,7 +190,7 @@
       stroke-width: 2.3;
       stroke-linecap: round;
       stroke-linejoin: round;
-      transition: stroke 220ms ease, transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+      transition: stroke 220ms ease, transform 240ms var(--spring);
       transform-origin: 78px 86px;
     }
 
@@ -168,11 +217,7 @@
       animation-delay: 160ms;
       animation-timing-function: ease-out;
       transform-origin: 58px 29px;
-      transition: transform 110ms cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .sax-svg.is-octave .sax-octave {
-      transform: rotate(-16deg);
+      transition: transform 200ms var(--spring);
     }
 
     .sax-strap-ring {
@@ -205,33 +250,6 @@
       transform-origin: center;
     }
 
-    .sax-svg:not(.is-egg-discovered):not(.is-gold) .sax-bell-cue {
-      animation: bell-invite 4.2s cubic-bezier(0.16, 1, 0.3, 1) 1.05s infinite;
-      will-change: transform, opacity;
-    }
-
-    .sax-svg:has(.sax-bell-target:hover, .sax-bell-target:focus-visible) .sax-bell-rim {
-      fill: var(--accent-soft);
-      stroke-width: 2.7;
-    }
-
-    .sax-svg:has(.sax-bell-target:active) .sax-bell-rim {
-      fill: var(--gold-soft);
-      stroke-width: 2.7;
-    }
-
-    .sax-svg.is-gold:has(.sax-bell-target:hover, .sax-bell-target:focus-visible) .sax-bell-rim {
-      fill: var(--gold-soft);
-    }
-
-    .sax-svg.is-playing .sax-body {
-      transform: rotate(-1.4deg) scale(1.012);
-    }
-
-    .sax-svg.is-gold .sax-body {
-      stroke: var(--gold);
-    }
-
     .sax-bell-target {
       fill: transparent;
       cursor: pointer;
@@ -241,9 +259,28 @@
     .sax-key {
       cursor: pointer;
       touch-action: none;
-      transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+      transition: transform 200ms var(--spring);
       transform-box: fill-box;
       transform-origin: center;
+
+      &:hover .sax-key-ring {
+        fill: var(--accent-soft);
+      }
+
+      &.is-active {
+        transform: scale(0.84);
+
+        .sax-key-ring {
+          fill: var(--accent);
+        }
+      }
+
+      &[data-index="0"] .sax-key-ring { animation-delay: 230ms; }
+      &[data-index="1"] .sax-key-ring { animation-delay: 260ms; }
+      &[data-index="2"] .sax-key-ring { animation-delay: 290ms; }
+      &[data-index="3"] .sax-key-ring { animation-delay: 322ms; }
+      &[data-index="4"] .sax-key-ring { animation-delay: 355ms; }
+      &[data-index="5"] .sax-key-ring { animation-delay: 400ms; }
     }
 
     .sax-key-hit {
@@ -262,33 +299,6 @@
       animation: sax-key-draw 160ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
     }
 
-    .sax-key[data-index="0"] .sax-key-ring { animation-delay: 230ms; }
-    .sax-key[data-index="1"] .sax-key-ring { animation-delay: 260ms; }
-    .sax-key[data-index="2"] .sax-key-ring { animation-delay: 290ms; }
-    .sax-key[data-index="3"] .sax-key-ring { animation-delay: 322ms; }
-    .sax-key[data-index="4"] .sax-key-ring { animation-delay: 355ms; }
-    .sax-key[data-index="5"] .sax-key-ring { animation-delay: 400ms; }
-
-    .sax-key:hover .sax-key-ring {
-      fill: var(--accent-soft);
-    }
-
-    .sax-key.is-active {
-      transform: scale(0.84);
-    }
-
-    .sax-key.is-active .sax-key-ring {
-      fill: var(--accent);
-    }
-
-    .sax-svg.is-gold .sax-key-ring {
-      stroke: var(--gold);
-    }
-
-    .sax-svg.is-gold .sax-key.is-active .sax-key-ring {
-      fill: var(--gold);
-    }
-
     /* Breath / bell sound arcs */
     .bell-wave {
       fill: none;
@@ -299,22 +309,6 @@
       transform-box: fill-box;
       transform-origin: left bottom;
       pointer-events: none;
-    }
-
-    .sax-svg.is-gold .bell-wave {
-      stroke: var(--gold);
-    }
-
-    .sax-svg.is-playing .bell-wave {
-      will-change: transform, opacity;
-    }
-
-    .sax-svg.is-playing .bell-wave-1 {
-      animation: wave-pulse 640ms cubic-bezier(0.16, 1, 0.3, 1) infinite;
-    }
-
-    .sax-svg.is-playing .bell-wave-2 {
-      animation: wave-pulse 640ms cubic-bezier(0.16, 1, 0.3, 1) 180ms infinite;
     }
 
     /* Keycap row */
@@ -348,30 +342,45 @@
       touch-action: none;
       -webkit-tap-highlight-color: transparent;
       transition:
-        transform 120ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 220ms var(--spring),
         background-color 120ms ease,
         border-color 120ms ease,
         color 120ms ease,
         opacity 220ms ease;
       animation: key-intro 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+
+      &::after {
+        content: "";
+        position: absolute;
+        inset: -8px -5px;
+      }
+
+      &:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      &.is-active {
+        background: var(--accent-fill);
+        border-color: var(--accent-fill);
+        color: #ffffff;
+        transform: scale(0.92) translateY(1px);
+      }
     }
 
-    .keycap::after {
-      content: "";
-      position: absolute;
-      inset: -8px -5px;
+    @supports (animation-delay: calc(sibling-index() * 1ms)) {
+      .keycap:not(.keycap--egg) {
+        animation-delay: calc(80ms + sibling-index() * 60ms);
+      }
     }
 
-    .keycap:nth-child(1) { animation-delay: 140ms; }
-    .keycap:nth-child(2) { animation-delay: 200ms; }
-    .keycap:nth-child(3) { animation-delay: 260ms; }
-    .keycap:nth-child(4) { animation-delay: 320ms; }
-    .keycap:nth-child(5) { animation-delay: 380ms; }
-    .keycap:nth-child(6) { animation-delay: 440ms; }
-
-    .keycap:hover {
-      border-color: var(--accent);
-      color: var(--accent);
+    @supports not (animation-delay: calc(sibling-index() * 1ms)) {
+      .keycap:nth-child(1) { animation-delay: 140ms; }
+      .keycap:nth-child(2) { animation-delay: 200ms; }
+      .keycap:nth-child(3) { animation-delay: 260ms; }
+      .keycap:nth-child(4) { animation-delay: 320ms; }
+      .keycap:nth-child(5) { animation-delay: 380ms; }
+      .keycap:nth-child(6) { animation-delay: 440ms; }
     }
 
     .keycap:focus-visible,
@@ -383,40 +392,47 @@
       border-radius: 4px;
     }
 
-    .keycap.is-active {
-      background: var(--accent-fill);
-      border-color: var(--accent-fill);
-      color: #ffffff;
-      transform: scale(0.92) translateY(1px);
-    }
-
     /* Hidden Easter egg keycap (U) */
     .keycap--egg {
+      display: none;
       opacity: 0;
       pointer-events: none;
-      transform: scale(0.85);
+      transform: scale(0.72);
       animation: none;
-    }
+      transition:
+        transform 280ms var(--spring),
+        background-color 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease,
+        opacity 260ms ease,
+        display 260ms allow-discrete;
 
-    .keycap--egg.is-revealed {
-      opacity: 1;
-      pointer-events: auto;
-      transform: scale(1);
-      border-color: rgba(212, 155, 26, 0.55);
-      background: var(--gold-soft);
-      color: var(--gold-ink);
-    }
+      &.is-revealed {
+        display: inline-flex;
+        opacity: 1;
+        pointer-events: auto;
+        transform: scale(1);
+        border-color: rgb(from var(--gold) r g b / 0.55);
+        background: var(--gold-soft);
+        color: var(--gold-ink);
 
-    .keycap--egg.is-revealed:hover {
-      border-color: var(--gold);
-      color: var(--gold-ink);
-    }
+        @starting-style {
+          opacity: 0;
+          transform: scale(0.72);
+        }
 
-    .keycap--egg.is-revealed.is-active {
-      background: var(--gold-active);
-      border-color: var(--gold-active);
-      color: #ffffff;
-      transform: scale(0.92) translateY(1px);
+        &:hover {
+          border-color: var(--gold);
+          color: var(--gold-ink);
+        }
+
+        &.is-active {
+          background: var(--gold-active);
+          border-color: var(--gold-active);
+          color: #ffffff;
+          transform: scale(0.92) translateY(1px);
+        }
+      }
     }
 
     .play-hint {
@@ -429,16 +445,16 @@
       user-select: none;
       -webkit-user-select: none;
       transition: opacity 380ms ease;
-    }
 
-    .play-hint > span {
-      display: inline-block;
-      animation: fade-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) 520ms both;
-    }
+      > span {
+        display: inline-block;
+        animation: fade-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) 520ms both;
+      }
 
-    .play-hint.is-hidden {
-      opacity: 0;
-      pointer-events: none;
+      &.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
     }
 
     /* Bio copy */
@@ -448,21 +464,22 @@
       line-height: 1.72;
       color: var(--ink);
       letter-spacing: -0.005em;
+      text-wrap: pretty;
       animation: fade-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) 240ms both;
-    }
 
-    .bio a {
-      color: inherit;
-      text-decoration: underline;
-      text-decoration-color: var(--link-underline);
-      text-underline-offset: 3px;
-      text-decoration-thickness: 1px;
-      transition: color 140ms ease, text-decoration-color 140ms ease;
-    }
+      a {
+        color: inherit;
+        text-decoration: underline;
+        text-decoration-color: var(--link-underline);
+        text-underline-offset: 3px;
+        text-decoration-thickness: 1px;
+        transition: color 140ms ease, text-decoration-color 140ms ease;
 
-    .bio a:hover {
-      color: var(--accent);
-      text-decoration-color: var(--accent);
+        &:hover {
+          color: var(--accent);
+          text-decoration-color: var(--accent);
+        }
+      }
     }
 
     .signoff {
@@ -470,31 +487,31 @@
       font-size: 14px;
       color: var(--muted);
       animation: fade-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) 320ms both;
-    }
 
-    .signoff a {
-      color: inherit;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      text-decoration: none;
-      transition: color 140ms ease;
-    }
+      a {
+        color: inherit;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        transition: color 140ms ease;
 
-    .signoff a span {
-      text-decoration: underline;
-      text-decoration-color: var(--signoff-underline);
-      text-underline-offset: 3px;
-      text-decoration-thickness: 1px;
-      transition: text-decoration-color 140ms ease;
-    }
+        span {
+          text-decoration: underline;
+          text-decoration-color: var(--signoff-underline);
+          text-underline-offset: 3px;
+          text-decoration-thickness: 1px;
+          transition: text-decoration-color 140ms ease;
+        }
 
-    .signoff a:hover {
-      color: var(--accent);
-    }
+        &:hover {
+          color: var(--accent);
 
-    .signoff a:hover span {
-      text-decoration-color: var(--accent);
+          span {
+            text-decoration-color: var(--accent);
+          }
+        }
+      }
     }
 
     .signoff-icon {
