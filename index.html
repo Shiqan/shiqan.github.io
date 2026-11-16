@@ -560,15 +560,17 @@
         { key: 'y', name: 'C5', freq: 523.25 }
       ];
 
-      // "The Lick" phrase for the U / bell Easter egg
+      // D minor blues lick for the U / bell Easter egg (mapped directly to NOTES)
       const LICK = [
-        { freq: 293.66, index: 0, delay: 0, dur: 0.16 },
-        { freq: 329.63, index: 1, delay: 0.17, dur: 0.16 },
-        { freq: 349.23, index: 1, delay: 0.34, dur: 0.16 },
-        { freq: 392.00, index: 2, delay: 0.51, dur: 0.16 },
-        { freq: 329.63, index: 1, delay: 0.68, dur: 0.30 },
-        { freq: 261.63, index: 0, delay: 1.00, dur: 0.17 },
-        { freq: 293.66, index: 0, delay: 1.18, dur: 0.44 }
+        { index: 0, delay: 0.00, dur: 0.14 },
+        { index: 1, delay: 0.15, dur: 0.14 },
+        { index: 4, delay: 0.30, dur: 0.14 },
+        { index: 5, delay: 0.45, dur: 0.24 },
+        { index: 4, delay: 0.72, dur: 0.14 },
+        { index: 3, delay: 0.87, dur: 0.14 },
+        { index: 2, delay: 1.02, dur: 0.14 },
+        { index: 1, delay: 1.17, dur: 0.14 },
+        { index: 0, delay: 1.33, dur: 0.42 }
       ];
 
       const saxSvg = document.getElementById('saxSvg');
@@ -841,7 +843,9 @@
           let maxEndSec = 0;
 
           LICK.forEach((step) => {
-            const voice = createSaxVoice(step.freq, 0.19, step.delay, step.dur);
+            const note = NOTES[step.index];
+            if (!note) return;
+            const voice = createSaxVoice(note.freq, 0.19, step.delay, step.dur);
             activeLickVoices.add(voice);
             maxEndSec = Math.max(maxEndSec, step.delay + step.dur + 0.16);
 
