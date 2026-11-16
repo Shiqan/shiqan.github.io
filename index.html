@@ -5,15 +5,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Shiqan.dev</title>
-  <meta name="description" content="Shiqan — minimal personal page.">
+  <meta name="description" content="Shiqan — developer & interactive Web Audio saxophone.">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://shiqan.dev/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Shiqan.dev">
   <meta property="og:url" content="https://shiqan.dev/">
   <meta property="og:title" content="Shiqan.dev">
-  <meta property="og:description" content="Shiqan — minimal personal page.">
+  <meta property="og:description" content="Shiqan — developer & interactive Web Audio saxophone.">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Shiqan.dev">
+  <meta name="twitter:description" content="Shiqan — developer & interactive Web Audio saxophone.">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111115" media="(prefers-color-scheme: dark)">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M10 6h4l3 14c.8 3.6 4.4 4.2 5.4 1.2l1.6-4.7' fill='none' stroke='%232100EC' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cellipse cx='24.5' cy='16' rx='3' ry='1.4' transform='rotate(-22 24.5 16)' fill='none' stroke='%232100EC' stroke-width='2.2'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cstyle%3Epath,ellipse%7Bstroke:%232100EC%7D@media(prefers-color-scheme:dark)%7Bpath,ellipse%7Bstroke:%237b6dff%7D%7D%3C/style%3E%3Cpath d='M10 6h4l3 14c.8 3.6 4.4 4.2 5.4 1.2l1.6-4.7' fill='none' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cellipse cx='24.5' cy='16' rx='3' ry='1.4' transform='rotate(-22 24.5 16)' fill='none' stroke-width='2.2'/%3E%3C/svg%3E">
   <style>
     :root {
       color-scheme: light dark;
@@ -113,7 +118,7 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 20px;
-      margin-bottom: 36px;
+      margin-bottom: 20px;
       width: 100%;
     }
 
@@ -160,6 +165,12 @@
       animation-duration: 95ms;
       animation-delay: 160ms;
       animation-timing-function: ease-out;
+      transform-origin: 58px 29px;
+      transition: transform 110ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .sax-svg.is-octave .sax-octave {
+      transform: rotate(-16deg);
     }
 
     .sax-strap-ring {
@@ -178,6 +189,16 @@
       animation-duration: 180ms;
       animation-delay: 680ms;
       animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+      transition: fill 160ms ease, stroke-width 160ms ease, stroke 220ms ease;
+    }
+
+    .sax-svg:has(.sax-bell-target:hover, .sax-bell-target:focus-visible) .sax-bell-rim {
+      fill: var(--accent-soft);
+      stroke-width: 2.7;
+    }
+
+    .sax-svg.is-gold:has(.sax-bell-target:hover, .sax-bell-target:focus-visible) .sax-bell-rim {
+      fill: var(--gold-soft);
     }
 
     .sax-svg.is-playing .sax-body {
@@ -371,6 +392,28 @@
       transform: scale(0.92) translateY(1px);
     }
 
+    .play-hint {
+      margin: -8px 0 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.4;
+      color: var(--muted);
+      opacity: 0.72;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: opacity 380ms ease;
+    }
+
+    .play-hint > span {
+      display: inline-block;
+      animation: fade-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) 520ms both;
+    }
+
+    .play-hint.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     /* Bio copy */
     .bio {
       margin: 0;
@@ -507,6 +550,10 @@
         --key-size: 32px;
         --key-gap: 12px;
       }
+
+      .play-hint-desktop {
+        display: none;
+      }
     }
 
     @media (max-width: 440px) {
@@ -558,7 +605,7 @@
           </g>
 
           <!-- Generous click target over the bell for the Easter egg -->
-          <circle class="sax-bell-target" id="bellTrigger" cx="139" cy="64" r="20" role="button" tabindex="0" aria-label="Play saxophone riff" />
+          <circle class="sax-bell-target" id="bellTrigger" cx="139" cy="64" r="20" role="button" tabindex="0" aria-pressed="false" aria-label="Play saxophone riff" />
 
           <!-- Subtle sound arcs from bell -->
           <path class="bell-wave bell-wave-1" d="M 152 52 C 157 49, 161 52, 161 57" />
@@ -601,6 +648,8 @@
           <button class="keycap" type="button" data-index="5" data-key="y" aria-pressed="false" aria-label="Note C5, key Y">Y</button>
           <button class="keycap keycap--egg" type="button" id="eggKey" data-key="u" aria-label="Play riff, key U" aria-hidden="true" tabindex="-1">U</button>
         </div>
+
+        <p class="play-hint" id="playHint"><span>tap or press Q–Y<span class="play-hint-desktop"> · Shift +8va</span></span></p>
       </div>
 
       <p class="bio">Still figuring it out. Probably always will be.</p>
@@ -637,6 +686,7 @@
       const saxSvg = document.getElementById('saxSvg');
       const bellTrigger = document.getElementById('bellTrigger');
       const eggKey = document.getElementById('eggKey');
+      const playHint = document.getElementById('playHint');
       const keyButtons = Array.from(document.querySelectorAll('.keycap[data-index]'));
       const svgKeys = Array.from(document.querySelectorAll('.sax-key[data-index]'));
 
@@ -649,6 +699,7 @@
       const activeLickCounts = new Array(NOTES.length).fill(0);
       let lickTimers = [];
       let lickGeneration = 0;
+      let octaveActive = false;
 
       function createRoomImpulse(ctx, durationSec = 0.45) {
         const length = Math.floor(ctx.sampleRate * durationSec);
@@ -750,8 +801,8 @@
         const filter = ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.Q.setValueAtTime(2.4, startAt);
-        filter.frequency.setValueAtTime(Math.min(freq * 6, 2400), startAt);
-        filter.frequency.exponentialRampToValueAtTime(Math.min(freq * 3.1, 1350), startAt + 0.14);
+        filter.frequency.setValueAtTime(Math.min(freq * 6, 4200), startAt);
+        filter.frequency.exponentialRampToValueAtTime(Math.min(freq * 3.1, 2600), startAt + 0.14);
 
         // Subtle breath chiff on attack
         const breath = ctx.createBufferSource();
@@ -854,6 +905,18 @@
         };
       }
 
+      function dismissPlayHint() {
+        if (!playHint || playHint.classList.contains('is-hidden')) return;
+        playHint.classList.add('is-hidden');
+        playHint.setAttribute('aria-hidden', 'true');
+      }
+
+      function setOctaveKey(active) {
+        if (octaveActive === active) return;
+        octaveActive = active;
+        saxSvg.classList.toggle('is-octave', active);
+      }
+
       function updatePlayingVisuals() {
         const hasActive = activeVoices.size > 0;
         saxSvg.classList.toggle('is-playing', hasActive || saxSvg.classList.contains('is-gold'));
@@ -873,21 +936,29 @@
         }
       }
 
-      function startNote(index, sourceId) {
+      function startNote(index, sourceId, octaveUp = false) {
         if (index < 0 || index >= NOTES.length) return;
         const voiceId = `${sourceId}:${index}`;
         if (activeVoices.has(voiceId)) return;
 
+        dismissPlayHint();
+        const freq = NOTES[index].freq * (octaveUp ? 2 : 1);
         const { ctx } = getAudioContext();
-        const entry = { index, voice: null, cancelled: false };
+        const entry = { index, voice: null, releasedEarly: false, aborted: false };
         activeVoices.set(voiceId, entry);
         syncKeyVisual(index);
         updatePlayingVisuals();
 
-        if (ctx.state === 'suspended') {
+        if (ctx.state !== 'running') {
           ctx.resume().then(() => {
-            if (entry.cancelled || activeVoices.get(voiceId) !== entry) return;
-            entry.voice = createSaxVoice(NOTES[index].freq);
+            if (entry.aborted) return;
+            if (entry.releasedEarly) {
+              // Quick first tap released while AudioContext was waking: play a crisp staccato note
+              createSaxVoice(freq, 0.22, 0, 0.14);
+              return;
+            }
+            if (activeVoices.get(voiceId) !== entry) return;
+            entry.voice = createSaxVoice(freq);
           }).catch(() => {
             if (activeVoices.get(voiceId) === entry) {
               activeVoices.delete(voiceId);
@@ -896,7 +967,7 @@
             }
           });
         } else {
-          entry.voice = createSaxVoice(NOTES[index].freq);
+          entry.voice = createSaxVoice(freq);
         }
       }
 
@@ -904,7 +975,7 @@
         const voiceId = `${sourceId}:${index}`;
         const entry = activeVoices.get(voiceId);
         if (!entry) return;
-        entry.cancelled = true;
+        entry.releasedEarly = true;
         if (entry.voice) {
           entry.voice.stop();
         }
@@ -924,6 +995,7 @@
         activeLickVoices.clear();
         activeLickCounts.fill(0);
         eggKey.classList.remove('is-active');
+        bellTrigger.setAttribute('aria-pressed', 'false');
         saxSvg.classList.remove('is-gold');
         NOTES.forEach((_, i) => syncKeyVisual(i));
         updatePlayingVisuals();
@@ -932,7 +1004,7 @@
       function stopAllNotes() {
         activePointers.clear();
         for (const [voiceId, entry] of activeVoices.entries()) {
-          entry.cancelled = true;
+          entry.aborted = true;
           if (entry.voice) {
             entry.voice.stop();
           }
@@ -942,13 +1014,15 @@
         stopLick();
       }
 
-      function triggerEggLick() {
+      function triggerEggLick(octaveUp = false) {
         stopLick();
+        dismissPlayHint();
 
         // Reveal hidden U keycap
         eggKey.classList.add('is-revealed', 'is-active');
         eggKey.removeAttribute('aria-hidden');
         eggKey.removeAttribute('tabindex');
+        bellTrigger.setAttribute('aria-pressed', 'true');
         saxSvg.classList.add('is-gold', 'is-playing');
 
         const gen = lickGeneration;
@@ -961,7 +1035,8 @@
           LICK.forEach((step) => {
             const note = NOTES[step.index];
             if (!note) return;
-            const voice = createSaxVoice(note.freq, 0.19, step.delay, step.dur);
+            const freq = note.freq * (octaveUp ? 2 : 1);
+            const voice = createSaxVoice(freq, 0.19, step.delay, step.dur);
             activeLickVoices.add(voice);
             maxEndSec = Math.max(maxEndSec, step.delay + step.dur + 0.16);
 
@@ -984,14 +1059,17 @@
             if (gen !== lickGeneration) return;
             activeLickVoices.clear();
             eggKey.classList.remove('is-active');
+            bellTrigger.setAttribute('aria-pressed', 'false');
             saxSvg.classList.remove('is-gold');
             updatePlayingVisuals();
           }, Math.max(1700, maxEndSec * 1000));
           lickTimers.push(finishTimer);
         };
 
-        if (ctx.state === 'suspended') {
-          ctx.resume().then(scheduleLick).catch(() => {});
+        if (ctx.state !== 'running') {
+          ctx.resume().then(scheduleLick).catch(() => {
+            if (gen === lickGeneration) stopLick();
+          });
         } else {
           scheduleLick();
         }
@@ -1013,12 +1091,12 @@
           }
           const sourceId = `ptr-${e.pointerId}`;
           activePointers.set(e.pointerId, { index, sourceId });
-          startNote(index, sourceId);
+          startNote(index, sourceId, e.shiftKey || octaveActive);
         });
         el.addEventListener('keydown', (e) => {
           if (e.key === ' ' || e.key === 'Enter') {
             e.preventDefault();
-            if (!e.repeat) startNote(index, kbdSourceId);
+            if (!e.repeat) startNote(index, kbdSourceId, e.shiftKey || octaveActive);
           }
         });
         el.addEventListener('keyup', (e) => {
@@ -1042,7 +1120,7 @@
         if (nextIndex !== -1 && nextIndex !== state.index) {
           stopNote(state.index, state.sourceId);
           state.index = nextIndex;
-          startNote(nextIndex, state.sourceId);
+          startNote(nextIndex, state.sourceId, e.shiftKey || octaveActive);
         }
       });
 
@@ -1056,33 +1134,46 @@
       window.addEventListener('pointerup', releasePointer);
       window.addEventListener('pointercancel', releasePointer);
 
-      eggKey.addEventListener('click', triggerEggLick);
-      bellTrigger.addEventListener('click', triggerEggLick);
+      eggKey.addEventListener('click', (e) => triggerEggLick(e.shiftKey || octaveActive));
+      bellTrigger.addEventListener('click', (e) => triggerEggLick(e.shiftKey || octaveActive));
       bellTrigger.addEventListener('keydown', (e) => {
         if (e.key === ' ' || e.key === 'Enter') {
           e.preventDefault();
-          if (!e.repeat) triggerEggLick();
+          if (!e.repeat) triggerEggLick(e.shiftKey || octaveActive);
         }
       });
 
-      // Keyboard shortcuts (Q-Y + U Easter egg)
+      // Keyboard shortcuts (Q-Y + Shift octave, U Easter egg, Escape panic stop)
       window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          stopAllNotes();
+          return;
+        }
+        if (e.key === 'Shift') {
+          setOctaveKey(true);
+          return;
+        }
         if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
         const tag = document.activeElement && document.activeElement.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
         const pressed = e.key.toLowerCase();
+        const useOctave = e.shiftKey || octaveActive;
         if (pressed === 'u') {
-          triggerEggLick();
+          triggerEggLick(useOctave);
           return;
         }
         const idx = NOTES.findIndex((n) => n.key === pressed);
         if (idx !== -1) {
-          startNote(idx, 'kbd');
+          startNote(idx, 'kbd', useOctave);
         }
       });
 
       window.addEventListener('keyup', (e) => {
+        if (e.key === 'Shift') {
+          setOctaveKey(false);
+          return;
+        }
         const released = e.key.toLowerCase();
         const idx = NOTES.findIndex((n) => n.key === released);
         if (idx !== -1) {
@@ -1090,10 +1181,15 @@
         }
       });
 
-      window.addEventListener('blur', stopAllNotes);
-      window.addEventListener('pagehide', stopAllNotes);
+      function handleContextLoss() {
+        setOctaveKey(false);
+        stopAllNotes();
+      }
+
+      window.addEventListener('blur', handleContextLoss);
+      window.addEventListener('pagehide', handleContextLoss);
       document.addEventListener('visibilitychange', () => {
-        if (document.hidden) stopAllNotes();
+        if (document.hidden) handleContextLoss();
       });
     })();
   </script>
