@@ -32,6 +32,7 @@
       --gold-ink: #8f6200;
       --gold-active: #8f6200;
       --gold-soft: rgba(212, 155, 26, 0.14);
+      --bell-rest: rgba(33, 0, 236, 0.045);
       --key-bg: #f3f3f6;
       --key-border: #e4e4ea;
       --link-underline: rgba(31, 31, 36, 0.35);
@@ -52,6 +53,7 @@
         --gold-ink: #f3c458;
         --gold-active: #b87e00;
         --gold-soft: rgba(234, 179, 56, 0.16);
+        --bell-rest: rgba(123, 109, 255, 0.09);
         --key-bg: #1b1b22;
         --key-border: #2c2c36;
         --link-underline: rgba(236, 236, 241, 0.35);
@@ -186,14 +188,34 @@
     }
 
     .sax-bell-rim {
+      fill: var(--bell-rest);
       animation-duration: 180ms;
       animation-delay: 680ms;
       animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
       transition: fill 160ms ease, stroke-width 160ms ease, stroke 220ms ease;
     }
 
+    .sax-bell-cue {
+      fill: none;
+      stroke: var(--gold);
+      stroke-width: 1.6;
+      opacity: 0;
+      pointer-events: none;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .sax-svg:not(.is-egg-discovered):not(.is-gold) .sax-bell-cue {
+      animation: bell-invite 4.2s cubic-bezier(0.16, 1, 0.3, 1) 1.05s infinite;
+    }
+
     .sax-svg:has(.sax-bell-target:hover, .sax-bell-target:focus-visible) .sax-bell-rim {
       fill: var(--accent-soft);
+      stroke-width: 2.7;
+    }
+
+    .sax-svg:has(.sax-bell-target:active) .sax-bell-rim {
+      fill: var(--gold-soft);
       stroke-width: 2.7;
     }
 
@@ -545,6 +567,22 @@
       }
     }
 
+    @keyframes bell-invite {
+      0% {
+        opacity: 0;
+        transform: scale(1);
+      }
+      12% {
+        opacity: 0.65;
+        transform: scale(1.04);
+      }
+      42%,
+      100% {
+        opacity: 0;
+        transform: scale(1.42);
+      }
+    }
+
     @media (pointer: coarse) {
       .sax-wrap {
         --key-size: 32px;
@@ -578,6 +616,24 @@
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
       }
+
+      .sax-bell-cue {
+        animation: none !important;
+        opacity: 0 !important;
+      }
+
+      .sax-svg.is-playing .bell-wave {
+        animation: none !important;
+        transform: none !important;
+      }
+
+      .sax-svg.is-playing .bell-wave-1 {
+        opacity: 0.85;
+      }
+
+      .sax-svg.is-playing .bell-wave-2 {
+        opacity: 0.5;
+      }
     }
   </style>
 </head>
@@ -598,7 +654,10 @@
             <path class="sax-stroke sax-octave" pathLength="100" d="M 52 20 L 58 29" />
             <!-- Lower bow & ascending bell -->
             <path class="sax-stroke sax-bow-bell" pathLength="100" d="M 82 114 C 86 138, 114 142, 122 118 L 136 68" />
-            <!-- Bell rim -->
+            <!-- Bell rim & subtle discoverability cue -->
+            <g transform="rotate(-18 139 64)">
+              <ellipse class="sax-bell-cue" cx="139" cy="64" rx="13" ry="5.5" />
+            </g>
             <ellipse class="sax-stroke sax-bell-rim" pathLength="100" cx="139" cy="64" rx="13" ry="5.5" transform="rotate(-18 139 64)" />
             <!-- Neck strap ring -->
             <circle class="sax-stroke sax-strap-ring" pathLength="100" cx="67" cy="66" r="2.2" />
@@ -646,7 +705,7 @@
           <button class="keycap" type="button" data-index="3" data-key="r" aria-pressed="false" aria-label="Note A-flat 4, key R">R</button>
           <button class="keycap" type="button" data-index="4" data-key="t" aria-pressed="false" aria-label="Note A4, key T">T</button>
           <button class="keycap" type="button" data-index="5" data-key="y" aria-pressed="false" aria-label="Note C5, key Y">Y</button>
-          <button class="keycap keycap--egg" type="button" id="eggKey" data-key="u" aria-label="Play riff, key U" aria-hidden="true" tabindex="-1">U</button>
+          <button class="keycap keycap--egg" type="button" id="eggKey" data-key="u" aria-pressed="false" aria-label="Play riff, key U" aria-hidden="true" tabindex="-1">U</button>
         </div>
 
         <p class="play-hint" id="playHint"><span>tap or press Q–Y<span class="play-hint-desktop"> · Shift +8va</span></span></p>
@@ -699,6 +758,7 @@
       const activeLickCounts = new Array(NOTES.length).fill(0);
       let lickTimers = [];
       let lickGeneration = 0;
+      let isLickPlaying = false;
       let octaveActive = false;
 
       function createRoomImpulse(ctx, durationSec = 0.45) {
@@ -986,6 +1046,7 @@
       }
 
       function stopLick() {
+        isLickPlaying = false;
         lickGeneration += 1;
         lickTimers.forEach(clearTimeout);
         lickTimers = [];
@@ -995,6 +1056,7 @@
         activeLickVoices.clear();
         activeLickCounts.fill(0);
         eggKey.classList.remove('is-active');
+        eggKey.setAttribute('aria-pressed', 'false');
         bellTrigger.setAttribute('aria-pressed', 'false');
         saxSvg.classList.remove('is-gold');
         NOTES.forEach((_, i) => syncKeyVisual(i));
@@ -1017,13 +1079,15 @@
       function triggerEggLick(octaveUp = false) {
         stopLick();
         dismissPlayHint();
+        isLickPlaying = true;
 
         // Reveal hidden U keycap
         eggKey.classList.add('is-revealed', 'is-active');
         eggKey.removeAttribute('aria-hidden');
         eggKey.removeAttribute('tabindex');
+        eggKey.setAttribute('aria-pressed', 'true');
         bellTrigger.setAttribute('aria-pressed', 'true');
-        saxSvg.classList.add('is-gold', 'is-playing');
+        saxSvg.classList.add('is-gold', 'is-playing', 'is-egg-discovered');
 
         const gen = lickGeneration;
         const { ctx } = getAudioContext();
@@ -1057,8 +1121,10 @@
 
           const finishTimer = setTimeout(() => {
             if (gen !== lickGeneration) return;
+            isLickPlaying = false;
             activeLickVoices.clear();
             eggKey.classList.remove('is-active');
+            eggKey.setAttribute('aria-pressed', 'false');
             bellTrigger.setAttribute('aria-pressed', 'false');
             saxSvg.classList.remove('is-gold');
             updatePlayingVisuals();
@@ -1073,6 +1139,14 @@
         } else {
           scheduleLick();
         }
+      }
+
+      function toggleEggLick(octaveUp = false) {
+        if (isLickPlaying) {
+          stopLick();
+          return;
+        }
+        triggerEggLick(octaveUp);
       }
 
       function getKeyIndexFromPoint(x, y) {
@@ -1134,12 +1208,12 @@
       window.addEventListener('pointerup', releasePointer);
       window.addEventListener('pointercancel', releasePointer);
 
-      eggKey.addEventListener('click', (e) => triggerEggLick(e.shiftKey || octaveActive));
-      bellTrigger.addEventListener('click', (e) => triggerEggLick(e.shiftKey || octaveActive));
+      eggKey.addEventListener('click', (e) => toggleEggLick(e.shiftKey || octaveActive));
+      bellTrigger.addEventListener('click', (e) => toggleEggLick(e.shiftKey || octaveActive));
       bellTrigger.addEventListener('keydown', (e) => {
         if (e.key === ' ' || e.key === 'Enter') {
           e.preventDefault();
-          if (!e.repeat) triggerEggLick(e.shiftKey || octaveActive);
+          if (!e.repeat) toggleEggLick(e.shiftKey || octaveActive);
         }
       });
 
@@ -1160,7 +1234,7 @@
         const pressed = e.key.toLowerCase();
         const useOctave = e.shiftKey || octaveActive;
         if (pressed === 'u') {
-          triggerEggLick(useOctave);
+          toggleEggLick(useOctave);
           return;
         }
         const idx = NOTES.findIndex((n) => n.key === pressed);
