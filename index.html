@@ -86,6 +86,7 @@
       overflow: visible;
       display: block;
       user-select: none;
+      -webkit-user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
 
@@ -152,13 +153,20 @@
     .sax-bell-target {
       fill: transparent;
       cursor: pointer;
+      touch-action: none;
     }
 
     .sax-key {
       cursor: pointer;
+      touch-action: none;
       transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
       transform-box: fill-box;
       transform-origin: center;
+    }
+
+    .sax-key-hit {
+      fill: transparent;
+      pointer-events: all;
     }
 
     .sax-key-ring {
@@ -249,6 +257,8 @@
       cursor: pointer;
       padding: 0;
       user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
       -webkit-tap-highlight-color: transparent;
       transition:
         transform 120ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -348,16 +358,33 @@
 
     .signoff a {
       color: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: color 140ms ease;
+    }
+
+    .signoff a span {
       text-decoration: underline;
       text-decoration-color: rgba(99, 99, 110, 0.45);
       text-underline-offset: 3px;
       text-decoration-thickness: 1px;
-      transition: color 140ms ease, text-decoration-color 140ms ease;
+      transition: text-decoration-color 140ms ease;
     }
 
     .signoff a:hover {
       color: var(--accent);
+    }
+
+    .signoff a:hover span {
       text-decoration-color: var(--accent);
+    }
+
+    .signoff-icon {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
     }
 
     @keyframes sax-draw {
@@ -478,21 +505,27 @@
 
           <!-- 6 interactive pearl keys along the sax spine (mapped to Q-Y) -->
           <g class="sax-key" data-index="0" role="button" tabindex="0" aria-label="Play D4 (Q)">
+            <circle class="sax-key-hit" cx="68" cy="46" r="9" />
             <circle class="sax-key-ring" pathLength="100" cx="68" cy="46" r="5.2" />
           </g>
           <g class="sax-key" data-index="1" role="button" tabindex="0" aria-label="Play F4 (W)">
+            <circle class="sax-key-hit" cx="71" cy="59" r="9" />
             <circle class="sax-key-ring" pathLength="100" cx="71" cy="59" r="5.2" />
           </g>
           <g class="sax-key" data-index="2" role="button" tabindex="0" aria-label="Play G4 (E)">
+            <circle class="sax-key-hit" cx="74" cy="72" r="9" />
             <circle class="sax-key-ring" pathLength="100" cx="74" cy="72" r="5.2" />
           </g>
           <g class="sax-key" data-index="3" role="button" tabindex="0" aria-label="Play A-flat 4 (R)">
+            <circle class="sax-key-hit" cx="77" cy="85" r="9" />
             <circle class="sax-key-ring" pathLength="100" cx="77" cy="85" r="5.2" />
           </g>
           <g class="sax-key" data-index="4" role="button" tabindex="0" aria-label="Play A4 (T)">
+            <circle class="sax-key-hit" cx="80" cy="98" r="9" />
             <circle class="sax-key-ring" pathLength="100" cx="80" cy="98" r="5.2" />
           </g>
           <g class="sax-key" data-index="5" role="button" tabindex="0" aria-label="Play C5 (Y)">
+            <circle class="sax-key-hit" cx="83" cy="111" r="9" />
             <circle class="sax-key-ring" pathLength="100" cx="83" cy="111" r="5.2" />
           </g>
         </svg>
@@ -511,7 +544,7 @@
 
       <p class="bio">Still figuring it out. Probably always will be.</p>
 
-      <p class="signoff">— <a href="https://github.com/shiqan/" target="_blank" rel="noopener noreferrer">Shiqan</a></p>
+      <p class="signoff"><a href="https://github.com/shiqan/" target="_blank" rel="noopener noreferrer"><svg class="signoff-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg><span>Shiqan</span></a></p>
     </section>
   </main>
 
@@ -545,19 +578,39 @@
       const svgKeys = Array.from(document.querySelectorAll('.sax-key[data-index]'));
 
       let audioCtx = null;
+      let masterInput = null;
       let noiseBuffer = null;
       const activeVoices = new Map();
+      const activePointers = new Map();
+      const activeLickVoices = new Set();
+      const activeLickCounts = new Array(NOTES.length).fill(0);
       let lickTimers = [];
+      let lickGeneration = 0;
 
       function getAudioContext() {
         if (!audioCtx) {
           const Ctx = window.AudioContext || window.webkitAudioContext;
           audioCtx = new Ctx();
+
+          // Shared limiter bus prevents chord clipping when holding multiple keys
+          const compressor = audioCtx.createDynamicsCompressor();
+          compressor.threshold.setValueAtTime(-10, audioCtx.currentTime);
+          compressor.knee.setValueAtTime(18, audioCtx.currentTime);
+          compressor.ratio.setValueAtTime(4, audioCtx.currentTime);
+          compressor.attack.setValueAtTime(0.004, audioCtx.currentTime);
+          compressor.release.setValueAtTime(0.12, audioCtx.currentTime);
+
+          const masterGain = audioCtx.createGain();
+          masterGain.gain.setValueAtTime(0.9, audioCtx.currentTime);
+
+          masterGain.connect(compressor);
+          compressor.connect(audioCtx.destination);
+          masterInput = masterGain;
         }
         if (audioCtx.state === 'suspended') {
           audioCtx.resume();
         }
-        return audioCtx;
+        return { ctx: audioCtx, output: masterInput };
       }
 
       function getBreathBuffer(ctx) {
@@ -571,32 +624,42 @@
         return noiseBuffer;
       }
 
-      // Warm reedy saxophone synth voice (sustains until stop() is called)
-      function createSaxVoice(freq, peakGain = 0.22) {
-        const ctx = getAudioContext();
-        const now = ctx.currentTime;
+      function holdAndFadeGain(gainParam, t, fadeSec) {
+        if (typeof gainParam.cancelAndHoldAtTime === 'function') {
+          gainParam.cancelAndHoldAtTime(t);
+        } else {
+          gainParam.cancelScheduledValues(t);
+          gainParam.setValueAtTime(Math.max(gainParam.value, 0.0001), t);
+        }
+        gainParam.exponentialRampToValueAtTime(0.0001, t + fadeSec);
+      }
+
+      // Warm reedy saxophone synth voice (sustained until stop(), or sample-accurate fixed duration)
+      function createSaxVoice(freq, peakGain = 0.22, startOffset = 0, duration = null) {
+        const { ctx, output } = getAudioContext();
+        const startAt = ctx.currentTime + Math.max(0, startOffset);
 
         const saw = ctx.createOscillator();
         saw.type = 'sawtooth';
-        saw.frequency.setValueAtTime(freq, now);
+        saw.frequency.setValueAtTime(freq, startAt);
 
         const tri = ctx.createOscillator();
         tri.type = 'triangle';
-        tri.frequency.setValueAtTime(freq, now);
-        tri.detune.setValueAtTime(-4, now);
+        tri.frequency.setValueAtTime(freq, startAt);
+        tri.detune.setValueAtTime(-4, startAt);
 
         const sawGain = ctx.createGain();
-        sawGain.gain.setValueAtTime(0.65, now);
+        sawGain.gain.setValueAtTime(0.65, startAt);
 
         const triGain = ctx.createGain();
-        triGain.gain.setValueAtTime(0.45, now);
+        triGain.gain.setValueAtTime(0.45, startAt);
 
         // Formant-like lowpass filter with slight reed bite on attack
         const filter = ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.Q.setValueAtTime(2.4, now);
-        filter.frequency.setValueAtTime(Math.min(freq * 6, 2400), now);
-        filter.frequency.exponentialRampToValueAtTime(Math.min(freq * 3.1, 1350), now + 0.14);
+        filter.Q.setValueAtTime(2.4, startAt);
+        filter.frequency.setValueAtTime(Math.min(freq * 6, 2400), startAt);
+        filter.frequency.exponentialRampToValueAtTime(Math.min(freq * 3.1, 1350), startAt + 0.14);
 
         // Subtle breath chiff on attack
         const breath = ctx.createBufferSource();
@@ -605,31 +668,33 @@
 
         const breathFilter = ctx.createBiquadFilter();
         breathFilter.type = 'bandpass';
-        breathFilter.frequency.setValueAtTime(1600, now);
-        breathFilter.Q.setValueAtTime(1.5, now);
+        breathFilter.frequency.setValueAtTime(1600, startAt);
+        breathFilter.Q.setValueAtTime(1.5, startAt);
 
         const breathGain = ctx.createGain();
-        breathGain.gain.setValueAtTime(0.035, now);
-        breathGain.gain.exponentialRampToValueAtTime(0.004, now + 0.12);
+        breathGain.gain.setValueAtTime(0.035, startAt);
+        breathGain.gain.exponentialRampToValueAtTime(0.004, startAt + 0.12);
 
         // Gentle delayed vibrato
         const vibrato = ctx.createOscillator();
         vibrato.type = 'sine';
-        vibrato.frequency.setValueAtTime(5.3, now);
+        vibrato.frequency.setValueAtTime(5.3, startAt);
 
         const vibratoDepth = ctx.createGain();
-        vibratoDepth.gain.setValueAtTime(0.0001, now);
-        vibratoDepth.gain.linearRampToValueAtTime(freq * 0.0065, now + 0.35);
+        vibratoDepth.gain.setValueAtTime(0.0001, startAt);
+        vibratoDepth.gain.linearRampToValueAtTime(freq * 0.0065, startAt + 0.35);
 
         vibrato.connect(vibratoDepth);
         vibratoDepth.connect(saw.frequency);
         vibratoDepth.connect(tri.frequency);
 
-        // Master amplitude envelope
+        // Amplitude envelope
         const env = ctx.createGain();
-        env.gain.setValueAtTime(0.0001, now);
-        env.gain.linearRampToValueAtTime(peakGain, now + 0.03);
-        env.gain.linearRampToValueAtTime(peakGain * 0.78, now + 0.11);
+        const attackEnd = duration === null ? 0.03 : Math.min(0.03, duration * 0.25);
+        const decayEnd = duration === null ? 0.11 : Math.min(0.11, duration * 0.7);
+        env.gain.setValueAtTime(0.0001, startAt);
+        env.gain.linearRampToValueAtTime(peakGain, startAt + attackEnd);
+        env.gain.linearRampToValueAtTime(peakGain * 0.78, startAt + decayEnd);
 
         saw.connect(sawGain);
         tri.connect(triGain);
@@ -641,12 +706,30 @@
         breathGain.connect(env);
 
         filter.connect(env);
-        env.connect(ctx.destination);
+        env.connect(output);
 
-        saw.start(now);
-        tri.start(now);
-        breath.start(now);
-        vibrato.start(now);
+        saw.start(startAt);
+        tri.start(startAt);
+        breath.start(startAt);
+        vibrato.start(startAt);
+
+        function stopSources(when) {
+          saw.stop(when);
+          tri.stop(when);
+          breath.stop(when);
+          vibrato.stop(when);
+        }
+
+        let sourcesStopped = false;
+        let scheduledEndAt = null;
+        if (duration !== null) {
+          const releaseAt = startAt + duration;
+          scheduledEndAt = releaseAt + 0.16;
+          env.gain.setValueAtTime(peakGain * 0.78, releaseAt);
+          env.gain.exponentialRampToValueAtTime(0.0001, releaseAt + 0.14);
+          stopSources(scheduledEndAt);
+          sourcesStopped = true;
+        }
 
         let stopped = false;
         return {
@@ -654,14 +737,27 @@
             if (stopped) return;
             stopped = true;
             const t = ctx.currentTime;
-            env.gain.cancelScheduledValues(t);
-            env.gain.setValueAtTime(Math.max(env.gain.value, 0.0001), t);
-            env.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
-            const endAt = t + 0.16;
-            saw.stop(endAt);
-            tri.stop(endAt);
-            breath.stop(endAt);
-            vibrato.stop(endAt);
+            if (scheduledEndAt !== null && t >= scheduledEndAt) return;
+
+            if (t < startAt) {
+              env.gain.cancelScheduledValues(0);
+              env.gain.setValueAtTime(0.0001, t);
+              if (!sourcesStopped) {
+                sourcesStopped = true;
+                stopSources(startAt + 0.02);
+              }
+              return;
+            }
+
+            if (sourcesStopped) {
+              // Fixed-duration sources already have .stop() scheduled; fade out immediately without re-calling .stop()
+              holdAndFadeGain(env.gain, t, 0.05);
+              return;
+            }
+
+            sourcesStopped = true;
+            holdAndFadeGain(env.gain, t, 0.14);
+            stopSources(t + 0.16);
           }
         };
       }
@@ -671,7 +767,9 @@
         saxSvg.classList.toggle('is-playing', hasActive || saxSvg.classList.contains('is-gold'));
       }
 
-      function setKeyVisual(index, active) {
+      function syncKeyVisual(index) {
+        const manualActive = Array.from(activeVoices.values()).some((v) => v.index === index);
+        const active = manualActive || activeLickCounts[index] > 0;
         if (keyButtons[index]) {
           keyButtons[index].classList.toggle('is-active', active);
         }
@@ -687,7 +785,7 @@
 
         const voice = createSaxVoice(NOTES[index].freq);
         activeVoices.set(voiceId, { index, voice });
-        setKeyVisual(index, true);
+        syncKeyVisual(index);
         updatePlayingVisuals();
       }
 
@@ -698,97 +796,142 @@
         entry.voice.stop();
         activeVoices.delete(voiceId);
 
-        const stillActiveOnIndex = Array.from(activeVoices.values()).some((v) => v.index === index);
-        if (!stillActiveOnIndex) {
-          setKeyVisual(index, false);
+        syncKeyVisual(index);
+        updatePlayingVisuals();
+      }
+
+      function stopLick() {
+        lickGeneration += 1;
+        lickTimers.forEach(clearTimeout);
+        lickTimers = [];
+        for (const voice of activeLickVoices) {
+          voice.stop();
         }
+        activeLickVoices.clear();
+        activeLickCounts.fill(0);
+        eggKey.classList.remove('is-active');
+        saxSvg.classList.remove('is-gold');
+        NOTES.forEach((_, i) => syncKeyVisual(i));
         updatePlayingVisuals();
       }
 
       function stopAllNotes() {
+        activePointers.clear();
         for (const [voiceId, entry] of activeVoices.entries()) {
           entry.voice.stop();
           activeVoices.delete(voiceId);
-          setKeyVisual(entry.index, false);
+          syncKeyVisual(entry.index);
         }
-        updatePlayingVisuals();
+        stopLick();
       }
 
       function triggerEggLick() {
+        stopLick();
+
         // Reveal hidden U keycap
         eggKey.classList.add('is-revealed', 'is-active');
         eggKey.removeAttribute('tabindex');
         saxSvg.classList.add('is-gold', 'is-playing');
 
-        // Clear any previous scheduled lick timers
-        lickTimers.forEach(clearTimeout);
-        lickTimers = [];
+        const gen = lickGeneration;
+        const { ctx } = getAudioContext();
 
-        LICK.forEach((step) => {
-          const startTimer = setTimeout(() => {
-            const voice = createSaxVoice(step.freq, 0.19);
-            setKeyVisual(step.index, true);
+        const scheduleLick = () => {
+          if (gen !== lickGeneration) return;
+          let maxEndSec = 0;
+
+          LICK.forEach((step) => {
+            const voice = createSaxVoice(step.freq, 0.19, step.delay, step.dur);
+            activeLickVoices.add(voice);
+            maxEndSec = Math.max(maxEndSec, step.delay + step.dur + 0.16);
+
+            const startTimer = setTimeout(() => {
+              if (gen !== lickGeneration) return;
+              activeLickCounts[step.index] += 1;
+              syncKeyVisual(step.index);
+            }, step.delay * 1000);
+
             const endTimer = setTimeout(() => {
-              voice.stop();
-              setKeyVisual(step.index, false);
-            }, step.dur * 1000);
-            lickTimers.push(endTimer);
-          }, step.delay * 1000);
-          lickTimers.push(startTimer);
-        });
+              if (gen !== lickGeneration) return;
+              activeLickCounts[step.index] = Math.max(0, activeLickCounts[step.index] - 1);
+              syncKeyVisual(step.index);
+            }, (step.delay + step.dur) * 1000);
 
-        const totalMs = 1700;
-        const finishTimer = setTimeout(() => {
-          eggKey.classList.remove('is-active');
-          saxSvg.classList.remove('is-gold');
-          updatePlayingVisuals();
-        }, totalMs);
-        lickTimers.push(finishTimer);
+            lickTimers.push(startTimer, endTimer);
+          });
+
+          const finishTimer = setTimeout(() => {
+            if (gen !== lickGeneration) return;
+            activeLickVoices.clear();
+            eggKey.classList.remove('is-active');
+            saxSvg.classList.remove('is-gold');
+            updatePlayingVisuals();
+          }, Math.max(1700, maxEndSec * 1000));
+          lickTimers.push(finishTimer);
+        };
+
+        if (ctx.state === 'suspended') {
+          ctx.resume().then(scheduleLick).catch(() => {});
+        } else {
+          scheduleLick();
+        }
       }
 
-      // Bind pointer interactions for both keycaps and SVG pearl keys
-      function bindKeyTarget(el, index, sourcePrefix) {
+      function getKeyIndexFromPoint(x, y) {
+        const el = document.elementFromPoint(x, y);
+        const target = el && el.closest('.keycap[data-index], .sax-key[data-index]');
+        return target ? Number(target.dataset.index) : -1;
+      }
+
+      function bindInteractiveKey(el, kbdSourceId) {
+        const index = Number(el.dataset.index);
         el.addEventListener('pointerdown', (e) => {
+          if (e.pointerType === 'mouse' && e.button !== 0) return;
           e.preventDefault();
-          startNote(index, sourcePrefix);
+          if (el.setPointerCapture) {
+            try { el.setPointerCapture(e.pointerId); } catch (_) {}
+          }
+          const sourceId = `ptr-${e.pointerId}`;
+          activePointers.set(e.pointerId, { index, sourceId });
+          startNote(index, sourceId);
         });
-        const release = () => stopNote(index, sourcePrefix);
-        el.addEventListener('pointerup', release);
-        el.addEventListener('pointerleave', release);
-        el.addEventListener('pointercancel', release);
+        el.addEventListener('keydown', (e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            if (!e.repeat) startNote(index, kbdSourceId);
+          }
+        });
+        el.addEventListener('keyup', (e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            stopNote(index, kbdSourceId);
+          }
+        });
       }
 
-      keyButtons.forEach((btn) => {
-        const index = Number(btn.dataset.index);
-        bindKeyTarget(btn, index, 'cap');
-        btn.addEventListener('keydown', (e) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            if (!e.repeat) startNote(index, 'cap-kbd');
-          }
-        });
-        btn.addEventListener('keyup', (e) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            stopNote(index, 'cap-kbd');
-          }
-        });
+      keyButtons.forEach((btn) => bindInteractiveKey(btn, 'cap-kbd'));
+      svgKeys.forEach((keyEl) => bindInteractiveKey(keyEl, 'svg-kbd'));
+
+      // Slide-to-play glissando and reliable pointer release across gaps
+      window.addEventListener('pointermove', (e) => {
+        const state = activePointers.get(e.pointerId);
+        if (!state) return;
+        const nextIndex = getKeyIndexFromPoint(e.clientX, e.clientY);
+        if (nextIndex !== -1 && nextIndex !== state.index) {
+          stopNote(state.index, state.sourceId);
+          state.index = nextIndex;
+          startNote(nextIndex, state.sourceId);
+        }
       });
 
-      svgKeys.forEach((keyEl) => {
-        const index = Number(keyEl.dataset.index);
-        bindKeyTarget(keyEl, index, 'svg');
-        keyEl.addEventListener('keydown', (e) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            if (!e.repeat) startNote(index, 'svg-kbd');
-          }
-        });
-        keyEl.addEventListener('keyup', (e) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            stopNote(index, 'svg-kbd');
-          }
-        });
-      });
+      function releasePointer(e) {
+        const state = activePointers.get(e.pointerId);
+        if (!state) return;
+        stopNote(state.index, state.sourceId);
+        activePointers.delete(e.pointerId);
+      }
+
+      window.addEventListener('pointerup', releasePointer);
+      window.addEventListener('pointercancel', releasePointer);
 
       eggKey.addEventListener('click', triggerEggLick);
       bellTrigger.addEventListener('click', triggerEggLick);
