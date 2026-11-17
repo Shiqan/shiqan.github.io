@@ -1,6 +1,8 @@
 # shiqan.dev
 
-Minimal personal site for [shiqan.dev](https://shiqan.dev) featuring an interactive Web Audio saxophone.
+Unfinished by design. I don’t have a five-year plan, I have a saxophone.
 
-- **Play:** Press `Q`–`Y` or click/tap the saxophone keys
-- **Stack:** Zero-dependency static `index.html` (inline SVG, CSS, Web Audio API)
+Personal site at [shiqan.dev](https://shiqan.dev) — an interactive Web Audio saxophone in a single static `index.html`.
+
+- **Play:** Tap the keys or press `Q`–`Y` (`Shift` for `+8va`)
+- **Stack:** Inline SVG, CSS, Web Audio API, zero dependencies
